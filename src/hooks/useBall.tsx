@@ -11,11 +11,10 @@ interface BallProps {
   offset: number;
 }
 
-const calculateFriction = (radius: number) => {
-  const baseRadius = 10;
-  const baseFriction = 0.98;
-  return baseFriction * (baseRadius / radius);
-};
+function calculateFriction(radius: number): number {
+  const frictionLossPercent = 0.02 * radius / 10;
+  return 1 - frictionLossPercent;
+}
 
 export default function useBall(props: BallProps) {
   const {
@@ -74,6 +73,7 @@ export default function useBall(props: BallProps) {
     }
   }, [isDragging]);
 
+  //handles slowing
   useEffect(() => {
     const handle = setInterval(() => {
       setVelocity((currVelocity) => {
@@ -97,6 +97,7 @@ export default function useBall(props: BallProps) {
     return () => clearInterval(handle);
   }, [velocity.x, velocity.y]);
 
+  //handles edges collision
   useEffect(() => {
     if (!velocity.x && !velocity.y) return ;
     const canvas = ref.current;
@@ -126,6 +127,7 @@ export default function useBall(props: BallProps) {
     drawBall,
     drawCue,
     position,
+    setPosition,
     setDragPosition,
     setIsDragging,
     isDragging,

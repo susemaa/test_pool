@@ -12,50 +12,55 @@ function checkCollision(ball1: BallType, ball2: BallType) {
   return distance < (ball1.radius + ball2.radius);
 }
 
-function resolveCollision(ball1: BallType, ball2: BallType) {
-  const dx = ball2.position.x - ball1.position.x;
-  const dy = ball2.position.y - ball1.position.y;
-
-  // Расстояние между шарами
+function resolveOverlap(ball1: BallType, ball2: BallType) {
+  const dx = ball1.position.x - ball2.position.x;
+  const dy = ball1.position.y - ball2.position.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
+  const overlap = (ball1.radius + ball2.radius) - distance;
+  if (overlap < 0) return;
 
-  // Нормализация вектора столкновения
-  const nx = (dx / distance);
-  const ny = (dy / distance);
+  const correctionDistance = Math.abs(overlap) > 0.01 ? overlap / 2 : 1;
+  const angle = Math.atan2(ball2.position.y - ball1.position.y, ball2.position.x - ball1.position.x);
 
-  // Разница скоростей
-  const dvx = ball1.velocity.x - ball2.velocity.x;
-  const dvy = ball1.velocity.y - ball2.velocity.y;
-
-  // Скалярное произведение разности скоростей на нормализованный вектор столкновения
-  // (это позволяет нам определить, движутся ли шары навстречу друг другу)
-  const dot = dvx * nx + dvy * ny;
-
-  // Не обрабатываем случаи, когда шары движутся в одном направлении
-  if (dot > 0) {
-    return;
-  }
-
-  // Коэффициент восстановления (упругость столкновения)
-  const restitution = 1; // Полностью упругое столкновение
-
-  // Вычисление скорости столкновения
-  const impulse = (2 * dot) / (ball1.radius ** 2 + ball2.radius ** 2);
-
-  // Изменение скоростей после столкновения
-  ball1.setVelocity({
-    x: ball1.velocity.x - impulse * ball2.radius ** 2 * nx * restitution,
-    y: ball1.velocity.y - impulse * ball2.radius ** 2 * ny * restitution,
+  ball1.setPosition({
+    x: ball1.position.x - correctionDistance * Math.cos(angle),
+    y: ball1.position.y - correctionDistance * Math.sin(angle),
   });
 
-  ball2.setVelocity({
-    x: ball2.velocity.x + impulse * ball1.radius ** 2 * nx * restitution,
-    y: ball2.velocity.y + impulse * ball1.radius ** 2 * ny * restitution,
+  ball2.setPosition({
+    x: ball2.position.x + correctionDistance * Math.cos(angle),
+    y: ball2.position.y + correctionDistance * Math.sin(angle),
   });
 }
 
+function resolveCollision(ball1: BallType, ball2: BallType) {
+  const dx = ball2.position.x - ball1.position.x;
+  const dy = ball2.position.y - ball1.position.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
 
+  // normalize vectors
+  const nx = dx / distance;
+  const ny = dy / distance;
 
+  const dvx = ball1.velocity.x - ball2.velocity.x;
+  const dvy = ball1.velocity.y - ball2.velocity.y;
+
+  const velocityAlongNormal = dvx * nx + dvy * ny;
+
+  const m1 = 4/3 * Math.PI * ball1.radius ** 3;
+  const m2 = 4/3 * Math.PI * ball2.radius ** 3;
+
+  const impulse = 2 * velocityAlongNormal / (m1 + m2);
+  const newVx1 = ball1.velocity.x - impulse * m2 * nx;
+  const newVy1 = ball1.velocity.y - impulse * m2 * ny;
+  const newVx2 = ball2.velocity.x + impulse * m1 * nx;
+  const newVy2 = ball2.velocity.y + impulse * m1 * ny;
+
+  ball1.setVelocity({ x: newVx1, y: newVy1 });
+  ball2.setVelocity({ x: newVx2, y: newVy2 });
+
+  resolveOverlap(ball1, ball2);
+}
 
 const getWH = () => typeof window !== 'undefined' && window.innerWidth > window.innerHeight
   ? [window.innerWidth * 0.85, window.innerHeight * 0.85]
@@ -140,6 +145,7 @@ export default function GameCanvas() {
       for (let i = 0; i < balls.length; i++) {
         for (let j = i + 1; j < balls.length; j++) {
           if (checkCollision(balls[i], balls[j])) {
+            // resolveOverlap(balls[i], balls[j]);
             resolveCollision(balls[i], balls[j]);
           }
         }
