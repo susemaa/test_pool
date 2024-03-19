@@ -2,71 +2,13 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import useBall from '@/hooks/useBall';
+import { Position } from '@/types';
 
 type BallType = ReturnType<typeof useBall>;
 
-function checkCollision(ball1: BallType, ball2: BallType) {
-  const dx = ball1.position.x - ball2.position.x;
-  const dy = ball1.position.y - ball2.position.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  return distance < (ball1.radius + ball2.radius);
-}
-
-function resolveOverlap(ball1: BallType, ball2: BallType) {
-  const dx = ball1.position.x - ball2.position.x;
-  const dy = ball1.position.y - ball2.position.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  const overlap = (ball1.radius + ball2.radius) - distance;
-  if (overlap < 0) return;
-
-  const correctionDistance = Math.abs(overlap) > 0.01 ? overlap / 2 : 1;
-  const angle = Math.atan2(ball2.position.y - ball1.position.y, ball2.position.x - ball1.position.x);
-
-  ball1.setPosition({
-    x: ball1.position.x - correctionDistance * Math.cos(angle),
-    y: ball1.position.y - correctionDistance * Math.sin(angle),
-  });
-
-  ball2.setPosition({
-    x: ball2.position.x + correctionDistance * Math.cos(angle),
-    y: ball2.position.y + correctionDistance * Math.sin(angle),
-  });
-}
-
-function resolveCollision(ball1: BallType, ball2: BallType) {
-  const dx = ball2.position.x - ball1.position.x;
-  const dy = ball2.position.y - ball1.position.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  // normalize vectors
-  const nx = dx / distance;
-  const ny = dy / distance;
-
-  const dvx = ball1.velocity.x - ball2.velocity.x;
-  const dvy = ball1.velocity.y - ball2.velocity.y;
-
-  const velocityAlongNormal = dvx * nx + dvy * ny;
-  // vAN < 0 === balls increase distance between them
-  if (velocityAlongNormal < 0) return ;
-
-  const m1 = 4/3 * Math.PI * ball1.radius ** 3;
-  const m2 = 4/3 * Math.PI * ball2.radius ** 3;
-
-  const impulse = 2 * velocityAlongNormal / (m1 + m2);
-  const newVx1 = ball1.velocity.x - impulse * m2 * nx;
-  const newVy1 = ball1.velocity.y - impulse * m2 * ny;
-  const newVx2 = ball2.velocity.x + impulse * m1 * nx;
-  const newVy2 = ball2.velocity.y + impulse * m1 * ny;
-
-  ball1.setVelocity({ x: newVx1, y: newVy1 });
-  ball2.setVelocity({ x: newVx2, y: newVy2 });
-
-  resolveOverlap(ball1, ball2);
-}
-
-const getWH = () => typeof window !== 'undefined' && window.innerWidth > window.innerHeight
+const getWH = (): [number, number] => (window.innerWidth > window.innerHeight
   ? [window.innerWidth * 0.85, window.innerHeight * 0.85]
-  : [window.innerHeight, window.innerWidth];
+  : [window.innerHeight, window.innerWidth]);
 
 export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -103,6 +45,14 @@ export default function GameCanvas() {
     ctx.fillRect(offset, offset, width - offset * 2, height - offset * 2);
   };
 
+  const getMousePosition = (e: React.MouseEvent<HTMLCanvasElement>): Position => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+    
+    return { x: mouseX, y: mouseY}
+  }
+
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!draggingBall) return;
 
@@ -113,14 +63,10 @@ export default function GameCanvas() {
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const mousePosition = getMousePosition(e);
 
     balls.forEach((ball) => {
-      const distance = Math.sqrt(
-        (mouseX - ball.position.x) ** 2 + (mouseY - ball.position.y) ** 2
-      );
+      const distance = ball.getDistance(mousePosition);
       if (distance <= ball.radius) {
         ball.setIsDragging(true);
         setDraggingBall(ball);
@@ -128,9 +74,14 @@ export default function GameCanvas() {
     });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const mousePosition = getMousePosition(e);
+
     if (draggingBall) {
       draggingBall.setIsDragging(false);
+      if (draggingBall.getDistance(mousePosition) <= draggingBall.radius) {
+        alert('show');
+      }
       setDraggingBall(null);
     }
   };
@@ -146,9 +97,8 @@ export default function GameCanvas() {
 
       for (let i = 0; i < balls.length; i++) {
         for (let j = i + 1; j < balls.length; j++) {
-          if (checkCollision(balls[i], balls[j])) {
-            // resolveOverlap(balls[i], balls[j]);
-            resolveCollision(balls[i], balls[j]);
+          if (balls[i].checkCollision(balls[j])) {
+            balls[i].resolveCollision(balls[j]);
           }
         }
       }
