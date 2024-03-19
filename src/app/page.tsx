@@ -46,6 +46,8 @@ function resolveCollision(ball1: BallType, ball2: BallType) {
   const dvy = ball1.velocity.y - ball2.velocity.y;
 
   const velocityAlongNormal = dvx * nx + dvy * ny;
+  // vAN < 0 === balls increase distance between them
+  if (velocityAlongNormal < 0) return ;
 
   const m1 = 4/3 * Math.PI * ball1.radius ** 3;
   const m2 = 4/3 * Math.PI * ball2.radius ** 3;
