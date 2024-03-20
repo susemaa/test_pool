@@ -236,8 +236,12 @@ export default function useBall(props: BallProps): Ball {
     const handle = setInterval(() => {
       setVelocity((currVelocity) => {
         const newVelocity = {
-          x: Math.abs(currVelocity.x) < 0.01 ? 0 : currVelocity.x * friction ** (timeout / baseTimeout),
-          y: Math.abs(currVelocity.y) < 0.01 ? 0 : currVelocity.y * friction ** (timeout / baseTimeout),
+          x: Math.abs(currVelocity.x) < 0.01
+            ? 0
+            : currVelocity.x * friction ** (timeout / baseTimeout),
+          y: Math.abs(currVelocity.y) < 0.01
+            ? 0
+            : currVelocity.y * friction ** (timeout / baseTimeout),
         };
 
         setPosition((currPosition) => ({

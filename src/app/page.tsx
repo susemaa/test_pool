@@ -24,7 +24,7 @@ export default function GameCanvas() {
     offset,
   });
   const ball2 = useBall({
-    initialPosition: { x: width * 3 / 4, y: height / 2 },
+    initialPosition: { x: width * (3 / 4), y: height / 2 },
     radius: 10,
     color: 'black',
     ref: canvasRef,
@@ -33,11 +33,14 @@ export default function GameCanvas() {
   const balls = [ball1, ball2];
 
   const drawField = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    const [width, height] = getWH();
+    // const [width, height] = getWH();
     const transform = window.innerWidth > window.innerHeight ? '' : 'rotate(-90deg)';
+
+    /* eslint-disable no-param-reassign */
     canvas.width = width;
     canvas.height = height;
     canvas.style.transform = transform;
+    /* eslint-enable no-param-reassign */
 
     ctx.fillStyle = 'red';
     ctx.fillRect(0, 0, width, height);
@@ -47,11 +50,11 @@ export default function GameCanvas() {
 
   const getMousePosition = (e: React.MouseEvent<HTMLCanvasElement>): Position => {
     const rect = canvasRef.current!.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-    
-    return { x: mouseX, y: mouseY}
-  }
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    return { x: mouseX, y: mouseY };
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!draggingBall) return;
@@ -95,8 +98,8 @@ export default function GameCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawField(ctx, canvas);
 
-      for (let i = 0; i < balls.length; i++) {
-        for (let j = i + 1; j < balls.length; j++) {
+      for (let i = 0; i < balls.length; i += 1) {
+        for (let j = i + 1; j < balls.length; j += 1) {
           if (balls[i].checkCollision(balls[j])) {
             balls[i].resolveCollision(balls[j]);
           }
