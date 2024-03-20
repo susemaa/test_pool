@@ -1,11 +1,24 @@
 import { useState, Dispatch, SetStateAction } from 'react';
-import { ColorResult, SketchPicker } from 'react-color';
 import { BallType } from '@/hooks/useBall';
 import './ColorModal.css';
 
 interface ColorModalProps {
   selectedBall: BallType;
   setSelectedBall: Dispatch<SetStateAction<BallType | null>>;
+}
+
+function hexToRgbValues(hexColor: string) {
+  const hexValue = String(hexColor).replace(/^#/, '');
+  const realHex = hexValue.length === 3
+    ? hexValue.split('').map((x) => x + x).join('')
+    : hexValue;
+
+  // Конвертируем
+  const r = parseInt(realHex.slice(0, 2), 16);
+  const g = parseInt(realHex.slice(2, 4), 16);
+  const b = parseInt(realHex.slice(4, 6), 16);
+
+  return `${r}, ${g}, ${b}`;
 }
 
 export default function ColorModal({ selectedBall, setSelectedBall }: ColorModalProps) {
@@ -24,8 +37,8 @@ export default function ColorModal({ selectedBall, setSelectedBall }: ColorModal
     }
   };
 
-  const handleChangeColor = (color: ColorResult) => {
-    setSelectedColor(color.hex);
+  const handleChangeColor = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedColor(e.target.value);
   };
 
   return (
@@ -40,11 +53,11 @@ export default function ColorModal({ selectedBall, setSelectedBall }: ColorModal
           )}
           <div className="center-items">
             {'Изначальный цвет: '}
-            {selectedBall.color}
+            {hexToRgbValues(selectedBall.color)}
           </div>
         </div>
         <div className="modal-body">
-          <SketchPicker color={selectedColor} onChange={handleChangeColor} />
+          <input type="color" value={selectedColor} onChange={handleChangeColor} />
         </div>
         <div className="modal-footer">
           <button type="button" aria-label="Подтвердить" onClick={confirmColor}>Подтвердить</button>
