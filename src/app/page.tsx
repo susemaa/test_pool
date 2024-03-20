@@ -12,13 +12,21 @@ type optionsType = {
   ref: React.RefObject<HTMLCanvasElement>,
 }
 
-export default function GameCanvas() {
+const getWH = (): [number, number] => {
+  if (typeof window !== 'undefined') {
+    return (window.innerWidth > window.innerHeight
+      ? [window.innerWidth * 0.85, window.innerHeight * 0.85]
+      : [window.innerHeight, window.innerWidth]);
+  }
+
+  return [0, 0];
+};
+
+export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [draggingBall, setDraggingBall] = useState<BallType | null>(null);
   const [selectedBall, setSelectedBall] = useState<BallType | null>(null);
-  const [width, height] = (window.innerWidth > window.innerHeight
-    ? [window.innerWidth * 0.85, window.innerHeight * 0.85]
-    : [window.innerHeight, window.innerWidth]);
+  const [width, height] = getWH();
   const offset = 20;
 
   const ball1 = useBall({
