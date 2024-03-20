@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import {
+  useRef, useEffect, useState, useCallback, useMemo,
+} from 'react';
 import useBall from '@/hooks/useBall';
 import type { BallProps, BallType } from '@/hooks/useBall';
 import { Position } from '@/types';
@@ -26,13 +28,14 @@ export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [draggingBall, setDraggingBall] = useState<BallType | null>(null);
   const [selectedBall, setSelectedBall] = useState<BallType | null>(null);
-  const [width, height] = getWH();
+  const [width, height] = useMemo(() => getWH(), []);
   const offset = 20;
 
   const ball1 = useBall({
     initialPosition: { x: width / 4, y: height / 2 },
     radius: 15,
-    color: 'white',
+    // color: 'white',
+    color: '#ffffff',
     ref: canvasRef,
     offset,
   });
@@ -58,31 +61,35 @@ export default function Game() {
     };
   };
 
+  // red === ff0000
+  // blue === 0000ff
+  // black === 000000
+
   const defaultBallProps = [
-    (id: number, options: optionsType) => generateBallProps(1, 0, 0, 'red', options),
+    (id: number, options: optionsType) => generateBallProps(1, 0, 0, '#ff0000', options),
 
-    (id: number, options: optionsType) => generateBallProps(2, 1, 0, 'blue', options),
-    (id: number, options: optionsType) => generateBallProps(3, 1, 1, 'red', options),
+    (id: number, options: optionsType) => generateBallProps(2, 1, 0, '#0000ff', options),
+    (id: number, options: optionsType) => generateBallProps(3, 1, 1, '#ff0000', options),
 
-    (id: number, options: optionsType) => generateBallProps(4, 2, 0, 'red', options),
-    (id: number, options: optionsType) => generateBallProps(8, 2, 1, 'black', options),
-    (id: number, options: optionsType) => generateBallProps(5, 2, 2, 'blue', options),
+    (id: number, options: optionsType) => generateBallProps(4, 2, 0, '#ff0000', options),
+    (id: number, options: optionsType) => generateBallProps(8, 2, 1, '#000000', options),
+    (id: number, options: optionsType) => generateBallProps(5, 2, 2, '#0000ff', options),
 
-    (id: number, options: optionsType) => generateBallProps(6, 3, 0, 'blue', options),
-    (id: number, options: optionsType) => generateBallProps(7, 3, 1, 'blue', options),
-    (id: number, options: optionsType) => generateBallProps(9, 3, 2, 'red', options),
-    (id: number, options: optionsType) => generateBallProps(10, 3, 3, 'red', options),
+    (id: number, options: optionsType) => generateBallProps(6, 3, 0, '#0000ff', options),
+    (id: number, options: optionsType) => generateBallProps(7, 3, 1, '#0000ff', options),
+    (id: number, options: optionsType) => generateBallProps(9, 3, 2, '#ff0000', options),
+    (id: number, options: optionsType) => generateBallProps(10, 3, 3, '#ff0000', options),
 
-    (id: number, options: optionsType) => generateBallProps(11, 4, 0, 'red', options),
-    (id: number, options: optionsType) => generateBallProps(12, 4, 1, 'blue', options),
-    (id: number, options: optionsType) => generateBallProps(13, 4, 2, 'red', options),
-    (id: number, options: optionsType) => generateBallProps(14, 4, 3, 'blue', options),
-    (id: number, options: optionsType) => generateBallProps(15, 4, 4, 'blue', options),
+    (id: number, options: optionsType) => generateBallProps(11, 4, 0, '#ff0000', options),
+    (id: number, options: optionsType) => generateBallProps(12, 4, 1, '#0000ff', options),
+    (id: number, options: optionsType) => generateBallProps(13, 4, 2, '#ff0000', options),
+    (id: number, options: optionsType) => generateBallProps(14, 4, 3, '#0000ff', options),
+    (id: number, options: optionsType) => generateBallProps(15, 4, 4, '#0000ff', options),
   ];
 
-  const balls = [
+  const balls = useMemo(() => [
     ball1,
-  ];
+  ], [ball1]);
   for (let i = 0; i < 15; i += 1) {
     const generator = defaultBallProps[i];
     const options: optionsType = {
@@ -94,7 +101,7 @@ export default function Game() {
     balls.push(useBall(generator(i + 1, options)));
   }
 
-  const drawField = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  const drawField = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     // const [width, height] = getWH();
     const transform = window.innerWidth > window.innerHeight ? '' : 'rotate(-90deg)';
 
@@ -108,7 +115,7 @@ export default function Game() {
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = 'green';
     ctx.fillRect(offset, offset, width - offset * 2, height - offset * 2);
-  };
+  }, [width, height]);
 
   const getMousePosition = (e: React.MouseEvent<HTMLCanvasElement>): Position => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -118,16 +125,16 @@ export default function Game() {
     return { x: mouseX, y: mouseY };
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!draggingBall) return;
 
     const rect = canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     draggingBall.setDragPosition({ x, y });
-  };
+  }, [draggingBall]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const mousePosition = getMousePosition(e);
 
     balls.forEach((ball) => {
@@ -137,9 +144,9 @@ export default function Game() {
         setDraggingBall(ball);
       }
     });
-  };
+  }, [balls]);
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const mousePosition = getMousePosition(e);
 
     if (draggingBall) {
@@ -149,7 +156,7 @@ export default function Game() {
       }
       setDraggingBall(null);
     }
-  };
+  }, [draggingBall]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -176,7 +183,7 @@ export default function Game() {
     const animationId = requestAnimationFrame(render);
     // eslint-disable-next-line consistent-return
     return () => cancelAnimationFrame(animationId);
-  }, [balls]);
+  }, [balls, drawField]);
 
   return (
     <>

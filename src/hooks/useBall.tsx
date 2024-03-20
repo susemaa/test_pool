@@ -2,6 +2,7 @@
 
 import {
   useState, useEffect, Dispatch, SetStateAction, RefObject,
+  useCallback,
 } from 'react';
 import type { Position } from '@/types';
 
@@ -46,22 +47,25 @@ export default function useBall(props: BallProps): BallType {
   const [color, setColor] = useState<string>(propColor);
   const friction: number = calculateFriction(radius);
 
-  const getNormalized = (pointTo: Position, reversed: boolean = false): [number, number] => {
-    const dx = position.x - pointTo.x;
-    const dy = position.y - pointTo.y;
-    const distance = Math.sqrt(dx ** 2 + dy ** 2);
+  const getNormalized = useCallback(
+    (pointTo: Position, reversed: boolean = false): [number, number] => {
+      const dx = position.x - pointTo.x;
+      const dy = position.y - pointTo.y;
+      const distance = Math.sqrt(dx ** 2 + dy ** 2);
 
-    const nx = dx / distance;
-    const ny = dy / distance;
-    return !reversed ? [nx, ny] : [-nx, -ny];
-  };
+      const nx = dx / distance;
+      const ny = dy / distance;
+      return !reversed ? [nx, ny] : [-nx, -ny];
+    },
+    [position.x, position.y],
+  );
 
-  const getDistance = (pointTo: Position): number => {
+  const getDistance = useCallback((pointTo: Position): number => {
     const dx = position.x - pointTo.x;
     const dy = position.y - pointTo.y;
     const distance = Math.sqrt(dx ** 2 + dy ** 2);
     return distance;
-  };
+  }, [position.x, position.y]);
 
   const checkCollision = (ball: BallType): boolean => {
     // Если шар пролетает другой насквозь - увеличь число шагов интерполяции steps
@@ -112,7 +116,7 @@ export default function useBall(props: BallProps): BallType {
   //   ball.setPosition({ x: nx2, y: ny2 });
   // };
 
-  const resolveCollision = (ball: BallType): void => {
+  const resolveCollision = useCallback((ball: BallType): void => {
     const [nx, ny]: [number, number] = getNormalized(ball.position, true);
 
     const dvx = velocity.x - ball.velocity.x;
@@ -137,9 +141,9 @@ export default function useBall(props: BallProps): BallType {
     setVelocity({ x: newVx1 * energyTransition, y: newVy1 * energyTransition });
     ball.setVelocity({ x: newVx2 * energyTransition, y: newVy2 * energyTransition });
     // resolveOverlap(ball);
-  };
+  }, [getNormalized, radius, velocity]);
 
-  const drawCue = (ctx: CanvasRenderingContext2D) => {
+  const drawCue = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!dragPosition || !isDragging || getDistance(dragPosition) < radius) return;
 
     const dx = position.x - dragPosition.x;
@@ -191,7 +195,7 @@ export default function useBall(props: BallProps): BallType {
     ctx.lineWidth = 1;
     ctx.fill();
     ctx.stroke();
-  };
+  }, [dragPosition, getDistance, isDragging, position, radius]);
 
   const drawBall = () => {
     const ctx = ref.current?.getContext('2d');
@@ -229,7 +233,7 @@ export default function useBall(props: BallProps): BallType {
       }
       setDragPosition(null);
     }
-  }, [isDragging]);
+  }, [isDragging, dragPosition, getDistance, getNormalized, radius]);
 
   // handles slowing
   useEffect(() => {
@@ -258,7 +262,7 @@ export default function useBall(props: BallProps): BallType {
     }, timeout);
 
     return () => clearInterval(handle);
-  }, [velocity.x, velocity.y]);
+  }, [velocity.x, velocity.y, friction]);
 
   // handles edges collision
   useEffect(() => {
@@ -283,7 +287,7 @@ export default function useBall(props: BallProps): BallType {
       setPosition({ x: position.x, y: canvas.height - radius - offset });
       setVelocity({ x: velocity.x, y: -velocity.y });
     }
-  }, [position]);
+  }, [position, offset, radius, velocity, ref]);
 
   return {
     ...props,
